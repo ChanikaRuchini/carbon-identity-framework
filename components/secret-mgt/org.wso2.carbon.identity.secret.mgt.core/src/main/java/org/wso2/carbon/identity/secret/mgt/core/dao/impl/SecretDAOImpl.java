@@ -295,7 +295,6 @@ public class SecretDAOImpl implements SecretDAO {
 
                 updateSecretMetadata(template, secret, currentTime);
                 return getCreatedTimeInResponse(secret);
-
             });
             secret.setLastModified(currentTime.toInstant().toString());
             if (createdTime != null) {
