@@ -128,6 +128,20 @@
             <Scopes>internal_config_mgt_delete</Scopes>
         </Resource>
 
+        <!-- [Organization]  Notification Sender Management API -->
+        <Resource context="(.*)/o/api/server/v1/notification-senders/(.*)" secured="true" http-method="POST">
+            <Scopes>internal_org_notification_senders_create</Scopes>
+        </Resource>
+        <Resource context="(.*)/o/api/server/v1/notification-senders/(.*)" secured="true" http-method="PUT">
+            <Scopes>internal_org_notification_senders_update</Scopes>
+        </Resource>
+        <Resource context="(.*)/o/api/server/v1/notification-senders/(.*)" secured="true" http-method="GET">
+            <Scopes>internal_org_notification_senders_view</Scopes>
+        </Resource>
+        <Resource context="(.*)/o/api/server/v1/notification-senders/(.*)" secured="true" http-method="DELETE">
+            <Scopes>internal_org_notification_senders_delete</Scopes>
+        </Resource>
+
         <!-- Notification Sender Management API -->
         <Resource context="(.*)/api/server/v1/notification-senders/(.*)" secured="true" http-method="POST">
             <Scopes>internal_notification_senders_create</Scopes>
@@ -672,6 +686,11 @@
             <Scopes>internal_user_association_delete</Scopes>
         </Resource>
 
+        <!-- User Offline Onboard Management API -->
+        <Resource context="(.*)/api/users/v1/offline-invite-link(.*)" secured="true" http-method="POST">
+            <Scopes>internal_offline_invite</Scopes>
+        </Resource>
+
         <!-- Challenge Management API -->
         <Resource context="(.*)/api/server/v1/challenges(.*)" secured="true" http-method="GET">
             <Scopes>internal_challenge_mgt_view</Scopes>
@@ -812,7 +831,7 @@
             <Scopes>internal_application_mgt_view</Scopes>
         </Resource>
 
-        <!-- [Organization] Admin Application Management API -->
+        <!-- Admin Application Management API -->
         <Resource context="(.*)/api/server/v1/applications/(.*)/owner(.*)" secured="true" http-method="PUT">
             <Scopes>internal_organization_admin</Scopes>
         </Resource>
@@ -889,10 +908,10 @@
         </Resource>
 
         <!-- [Organization] Session Management API -->
-        <Resource context="(.*)/api/users/v1/(.*)/sessions(.*)" secured="true" http-method="GET">
+        <Resource context="(.*)/o/api/users/v1/(.*)/sessions(.*)" secured="true" http-method="GET">
             <Scopes>internal_org_session_view</Scopes>
         </Resource>
-        <Resource context="(.*)/api/users/v1/(.*)/sessions(.*)" secured="true" http-method="DELETE">
+        <Resource context="(.*)/o/api/users/v1/(.*)/sessions(.*)" secured="true" http-method="DELETE">
             <Scopes>internal_org_session_delete</Scopes>
         </Resource>
 
@@ -1054,22 +1073,7 @@
         </Resource>
 
         <!-- [Organization] Organization Discovery API -->
-        <Resource context="(.*)/api/server/v1/organizations/discovery" secured="true" http-method="POST">
-            <Scopes>internal_org_organization_discovery_update</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/organizations/discovery" secured="true" http-method="GET">
-            <Scopes>internal_org_organization_discovery_view</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/organizations/(.*)/discovery" secured="true" http-method="GET">
-            <Scopes>internal_org_organization_discovery_view</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/organizations/(.*)/discovery" secured="true" http-method="PUT">
-            <Scopes>internal_org_organization_discovery_update</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/organizations/(.*)/discovery" secured="true" http-method="DELETE">
-            <Scopes>internal_org_organization_discovery_delete</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/organizations/check-discovery" secured="true" http-method="POST">
+        <Resource context="(.*)/o/api/server/v1/organizations/check-discovery" secured="true" http-method="POST">
             <Scopes>internal_org_organization_discovery_view</Scopes>
         </Resource>
 
@@ -1137,17 +1141,6 @@
         </Resource>
         <Resource context="(.*)/api/server/v1/organizations/check-name" secured="true" http-method="POST">
             <Scopes>internal_organization_view</Scopes>
-        </Resource>
-
-        <!-- [Organization] Organization Config Management API -->
-        <Resource context="(.*)/o/api/server/v1/organization-configs/discovery" secured="true" http-method="GET">
-            <Scopes>internal_org_organization_config_view</Scopes>
-        </Resource>
-        <Resource context="(.*)/o/api/server/v1/organization-configs/discovery" secured="true" http-method="POST">
-            <Scopes>internal_org_organization_config_add</Scopes>
-        </Resource>
-        <Resource context="(.*)/o/api/server/v1/organization-configs/discovery" secured="true" http-method="DELETE">
-            <Scopes>internal_org_organization_config_delete</Scopes>
         </Resource>
 
         <!-- Organization Config Management API -->

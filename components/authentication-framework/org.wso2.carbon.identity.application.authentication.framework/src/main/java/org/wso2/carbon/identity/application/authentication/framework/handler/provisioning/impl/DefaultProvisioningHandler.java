@@ -54,7 +54,6 @@ import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -118,7 +117,7 @@ public class DefaultProvisioningHandler implements ProvisioningHandler {
         try {
             int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
             UserRealm realm = (UserRealm) realmService.getTenantUserRealm(tenantId);
-            String username = MultitenantUtils.getTenantAwareUsername(subject);
+            String username = subject;
 
             String userStoreDomain;
             UserStoreManager userStoreManager;
@@ -167,7 +166,7 @@ public class DefaultProvisioningHandler implements ProvisioningHandler {
         try {
             int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
             UserRealm realm = (UserRealm) realmService.getTenantUserRealm(tenantId);
-            String username = MultitenantUtils.getTenantAwareUsername(subject);
+            String username = subject;
 
             String userStoreDomain;
             UserStoreManager userStoreManager;
@@ -306,7 +305,9 @@ public class DefaultProvisioningHandler implements ProvisioningHandler {
                     need to write a provisioning handler extending the "DefaultProvisioningHandler".
                      */
                 UserCoreUtil.setSkipPasswordPatternValidationThreadLocal(true);
-                UserCoreUtil.setSkipUsernamePatternValidationThreadLocal(true);
+                if (FrameworkUtils.isSkipUsernamePatternValidation()) {
+                    UserCoreUtil.setSkipUsernamePatternValidationThreadLocal(true);
+                }
                 if (FrameworkUtils.isJITProvisionEnhancedFeatureEnabled()) {
                     setJitProvisionedSource(tenantDomain, idp, userClaims);
                 }
@@ -403,11 +404,15 @@ public class DefaultProvisioningHandler implements ProvisioningHandler {
                 if (CollectionUtils.isNotEmpty(idpToLocalRoleMapping)) {
                     deletingRoles = deletingRoles.stream().distinct().filter(idpToLocalRoleMapping::contains)
                             .collect(Collectors.toSet());
-                    updateUserWithNewRoleSet(username, userStoreManager, new ArrayList<>(), deletingRoles);
+                    if (!deletingRoles.isEmpty()) {
+                        updateUserWithNewRoleSet(username, userStoreManager, new ArrayList<>(), deletingRoles);
+                    }
                 }
             } else {
                 // Remove all roles of the user.
-                updateUserWithNewRoleSet(username, userStoreManager, new ArrayList<>(), deletingRoles);
+                if (!deletingRoles.isEmpty()) {
+                    updateUserWithNewRoleSet(username, userStoreManager, new ArrayList<>(), deletingRoles);
+                }
             }
         }
     }
@@ -463,6 +468,16 @@ public class DefaultProvisioningHandler implements ProvisioningHandler {
         }
     }
 
+    /**
+     * Creates federated user association.
+     *
+     * @param username        Username of the user.
+     * @param userStoreDomain User store domain of the user.
+     * @param tenantDomain    Tenant domain of the user.
+     * @param subject         Subject of the user.
+     * @param idp             Identity provider of the user.
+     * @throws FrameworkException If an error occurs while associating the user.
+     */
     protected void associateUser(String username, String userStoreDomain, String tenantDomain, String subject,
                                  String idp) throws FrameworkException {
 
@@ -505,7 +520,7 @@ public class DefaultProvisioningHandler implements ProvisioningHandler {
         User user = new User();
         user.setTenantDomain(tenantDomain);
         user.setUserStoreDomain(userStoreDomain);
-        user.setUserName(MultitenantUtils.getTenantAwareUsername(username));
+        user.setUserName(username);
         return user;
     }
 

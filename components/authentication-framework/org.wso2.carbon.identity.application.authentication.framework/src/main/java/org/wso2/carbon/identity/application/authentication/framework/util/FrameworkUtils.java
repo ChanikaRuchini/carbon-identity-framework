@@ -658,6 +658,9 @@ public class FrameworkUtils {
             }
             request.setAttribute(FrameworkConstants.RequestParams.FLOW_STATUS, AuthenticatorFlowStatus.INCOMPLETE);
             request.setAttribute(FrameworkConstants.IS_SENT_TO_RETRY, true);
+            if (status != null) {
+                request.setAttribute(FrameworkConstants.REQ_ATTR_RETRY_STATUS, status);
+            }
             if (context != null) {
                 if (IdentityTenantUtil.isTenantedSessionsEnabled()) {
                     uriBuilder.addParameter(USER_TENANT_DOMAIN_HINT, context.getUserTenantDomain());
@@ -2659,6 +2662,19 @@ public class FrameworkUtils {
         }
         return userNamePrvisioningUrl;
     }
+
+    /**
+     * This method determines whether username pattern validation should be skipped for JIT provisioning users based
+     * on the configuration file.
+     *
+     * @return boolean Whether to skip username validation or not.
+     */
+    public static boolean isSkipUsernamePatternValidation() {
+
+        return Boolean.parseBoolean(
+                IdentityUtil.getProperty("JITProvisioning.SkipUsernamePatternValidation"));
+    }
+
 
     /**
      * This method is to provide flag about Adaptive authentication is availability.
