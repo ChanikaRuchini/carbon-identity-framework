@@ -317,6 +317,23 @@ public class DefaultRequestCoordinator extends AbstractRequestCoordinator implem
                     return;
                 }
 
+                // Check if the Identity Framework (IDF) is initiated from authenticators like SMS OTP or Email OTP,
+                // which have two procedures: 1. Identify the User, and 2. Perform authentication.
+                // After the first procedure, the context's current authenticator is set to the corresponding
+                // authenticator.
+                // Users have the option to restart the flow from the 1st step by choosing a different option.
+                // In such cases, if it's the first step in the authentication process, we need to remove
+                // the context's current authenticator to reset the flow.
+                // Reference: https://github.com/wso2/product-is/issues/18655
+                if (FrameworkUtils.isIdfInitiatedFromAuthenticator(context)
+                        && isStepHasMultiOption(context)
+                        && context.getCurrentStep() == 1
+                        && !isIdentifierFirstRequest(request)) {
+
+                    // Reset the current authenticator in the context since it's the first step in the authentication.
+                    context.setCurrentAuthenticator(null);
+                }
+
                 /*
                 If
                  Request specify to restart the flow again from first step by passing `restart_flow`.
@@ -382,7 +399,7 @@ public class DefaultRequestCoordinator extends AbstractRequestCoordinator implem
                 String message = "Requested client: " + request.getRemoteAddr() + ", URI :" + request.getMethod() +
                         ":" + request.getRequestURI() + ", User-Agent: " + userAgent + " , Referer: " + referer;
 
-                log.error("Context does not exist. Probably due to invalidated cache. " + message);
+                log.warn("Context does not exist. Probably due to invalidated cache. " + message);
                 FrameworkUtils.sendToRetryPage(request, responseWrapper, context,
                         FrameworkConstants.ERROR_STATUS_AUTH_CONTEXT_NULL,
                         FrameworkConstants.ERROR_DESCRIPTION_AUTH_CONTEXT_NULL);
@@ -1004,7 +1021,12 @@ public class DefaultRequestCoordinator extends AbstractRequestCoordinator implem
                     .append("&relyingParty=").append(URLEncoder.encode(context.getRelyingParty(), "UTF-8"))
                     .append("&type=").append(context.getRequestType()).append("&")
                     .append(FrameworkConstants.REQUEST_PARAM_SP).append("=")
-                    .append(URLEncoder.encode(context.getServiceProviderName(), "UTF-8")).append("&isSaaSApp=")
+                    .append(URLEncoder.encode(context.getServiceProviderName(), "UTF-8")).append("&");
+            if (context.getServiceProviderResourceId() != null) {
+                outboundQueryStringBuilder.append(FrameworkConstants.REQUEST_PARAM_SP_UUID).append("=")
+                        .append(URLEncoder.encode(context.getServiceProviderResourceId(), "UTF-8")).append("&");
+            }
+            outboundQueryStringBuilder.append("&isSaaSApp=")
                     .append(context.getSequenceConfig().getApplicationConfig().isSaaSApp());
         } catch (UnsupportedEncodingException e) {
             throw new FrameworkException("Error while URL Encoding", e);
@@ -1209,5 +1231,21 @@ public class DefaultRequestCoordinator extends AbstractRequestCoordinator implem
                 .filter(authenticatorConfig -> !authenticatorConfig.getName()
                         .equals(ORGANIZATION_AUTHENTICATOR)).collect(Collectors.toList());
         stepConfig.setAuthenticatorList(authenticatorList);
+    }
+
+    private boolean isStepHasMultiOption(AuthenticationContext context) {
+
+        SequenceConfig sequenceConfig = context.getSequenceConfig();
+
+        if (sequenceConfig != null) {
+            Map<Integer, StepConfig> stepMap = sequenceConfig.getStepMap();
+
+            if (stepMap != null) {
+                StepConfig stepConfig = stepMap.get(context.getCurrentStep());
+
+                return stepConfig != null && stepConfig.isMultiOption();
+            }
+        }
+        return false;
     }
 }

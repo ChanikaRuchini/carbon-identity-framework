@@ -131,6 +131,12 @@
         {% endif %}
     </ServiceProviders>
 
+    <Connectors>
+        <ChallengeQuestions>
+            <Enabled>{{connector.challenge_questions.enable}}</Enabled>
+        </ChallengeQuestions>
+    </Connectors>
+
     <OpenID>
         <!--
             Default values for OpenIDServerUrl and OpenIDUSerPattern are built in following format
@@ -549,18 +555,6 @@
                 <GrantTypeValidatorImplClass>{{oauth.grant_type.organization_switch.grant_validator}}</GrantTypeValidatorImplClass>
                 <IdTokenAllowed>true</IdTokenAllowed>
                 <PublicClientAllowed>{{oauth.grant_type.organization_switch.allow_public_client}}</PublicClientAllowed>
-            </SupportedGrantType>
-            {% endif %}
-            {% if oauth.grant_type.organization_switch_cc.enable is sameas true %}
-            <SupportedGrantType>
-                <GrantTypeName>organization_switch_cc</GrantTypeName>
-                <GrantTypeHandlerImplClass>{{oauth.grant_type.organization_switch_cc.grant_handler}}</GrantTypeHandlerImplClass>
-                {% if oauth.grant_type.organization_switch_cc.grant_validator is defined %}
-                <GrantTypeValidatorImplClass>{{oauth.grant_type.organization_switch_cc.grant_validator}}</GrantTypeValidatorImplClass>
-                {% endif %}
-                <IsRefreshTokenAllowed>{{oauth.grant_type.organization_switch_cc.allow_refresh_tokens}}</IsRefreshTokenAllowed>
-                <IdTokenAllowed>false</IdTokenAllowed>
-                <PublicClientAllowed>{{oauth.grant_type.organization_switch_cc.allow_public_client}}</PublicClientAllowed>
             </SupportedGrantType>
             {% endif %}
             {% if oauth.grant_type.token_exchange.enable is sameas true %}
@@ -1145,6 +1139,32 @@
         <!-- Configuration to enable setting local IDP generated AMR values with the values sent by the used idp. -->
         <ReplaceDefaultAMRValuesWithIDPSentValues>{{replace_amr_value_with_idp_sent_values.enable}}</ReplaceDefaultAMRValuesWithIDPSentValues>
 
+        <!-- Configuration to enable global scope validators. -->
+        <GlobalScopeValidators>
+            <RoleBasedScopeIssuer>
+                <Enable>{{oauth.global_scope_validators.role_based_scope_issuer.enable}}</Enable>
+            </RoleBasedScopeIssuer>
+        </GlobalScopeValidators>
+        {% if oauth.use_legacy_scopes_as_alias_for_new_scopes is defined %}
+        <!--
+        Configuration to maintain backward compatibility for the internal scopes used for the system API access control.
+        Prior to IS 7.0.0, some of the internal scopes were used as shared scopes for multiple APIs for the access control.
+        With the introduction of new authorization runtime with IS 7.0.0, new internal scopes were introduced for some of the APIs
+        which previously used shared scopes. This configuration will allow to use the legacy scopes as alias for the new scopes.
+        -->
+        <UseLegacyScopesAsAliasForNewScopes>{{oauth.use_legacy_scopes_as_alias_for_new_scopes}}</UseLegacyScopesAsAliasForNewScopes>
+        {% endif %}
+        {% if oauth.use_legacy_permission_access_for_user_based_auth is defined %}
+        <!--
+        Configuration to maintain backward compatibility for user based authentication handlers like Basic Auth to have
+        the previous access level. Prior to IS 7.0.0, permissions of the users were used for the access control of user
+        based authentication handlers. With the introduction of new authorization runtime with IS 7.0.0, scopes are used
+        to control the access of user based authentication handlers. Even though the migration of permissions to scopes
+        handle, still there are new internal scopes introduced for some APIs which previously used shared scopes. This
+        configuration will give the same access level for the shared scopes.
+        -->
+        <UseLegacyPermissionAccessForUserBasedAuth>{{oauth.use_legacy_permission_access_for_user_based_auth}}</UseLegacyPermissionAccessForUserBasedAuth>
+        {% endif %}
     </OAuth>
 
     <RestApiAuthentication>
@@ -1720,14 +1740,20 @@
         to returns all the unmapped roles.
     -->
 
-    {% if idp_role_management.return_only_mapped_local_roles is defined %}
-        <FederatedRoleManagement>
-            <ReturnOnlyMappedLocalRoles>{{idp_role_management.return_only_mapped_local_roles}}</ReturnOnlyMappedLocalRoles>
-            {% if idp_role_management.return_manually_added_local_roles is defined %}
-            <ReturnManuallyAddedLocalRoles>{{idp_role_management.return_manually_added_local_roles}}</ReturnManuallyAddedLocalRoles>
-            {% endif %}
-        </FederatedRoleManagement>
-    {% endif %}
+    <FederatedRoleManagement>
+        {% if idp_role_management.return_only_mapped_local_roles is defined %}
+        <!--
+            This configuration is used to send only the mapped local roles.
+            The default value of the configuration is set to true.
+            Disabling this configuration is only recommended for the backward compatibility with the previous behaviour
+            of IDP role to local role mappings if needed.
+        -->
+        <ReturnOnlyMappedLocalRoles>{{idp_role_management.return_only_mapped_local_roles}}</ReturnOnlyMappedLocalRoles>
+        {% endif %}
+        {% if idp_role_management.return_manually_added_local_roles is defined %}
+        <ReturnManuallyAddedLocalRoles>{{idp_role_management.return_manually_added_local_roles}}</ReturnManuallyAddedLocalRoles>
+        {% endif %}
+    </FederatedRoleManagement>
 
     <EnableAskPasswordAdminUI>{{identity_mgt.user_onboarding.ask_password_from_user}}</EnableAskPasswordAdminUI>
 
@@ -1784,6 +1810,7 @@
         {% if authentication.jit_provisioning.allow_idp_login is defined %}
             <AllowLoginToIDP>{{authentication.jit_provisioning.allow_idp_login}}</AllowLoginToIDP>
         {% endif %}
+        <AllowAssociatingToExistingUser>{{authentication.jit_provisioning.associating_to_existing_user}}</AllowAssociatingToExistingUser>
     </JITProvisioning>
 
     <!--Application management service configurations-->
@@ -2041,18 +2068,6 @@
                        name="org.wso2.carbon.identity.user.export.core.internal.service.impl.BasicUserInformationProvider"
                        orderId="{{event.default_listener.basic_user_info_provider.priority}}"
                        enable="{{event.default_listener.basic_user_info_provider.enable}}">
-        </EventListener>
-
-        <EventListener id="system_api_resource_management_listener" type="org.wso2.carbon.identity.core.AbstractIdentityTenantMgtListener"
-                       name="org.wso2.carbon.identity.api.resource.mgt.listener.APIResourceManagementListener"
-                       orderId="{{event.default_listener.system_api_resource_management_listener.priority}}"
-                       enable="{{event.default_listener.system_api_resource_management_listener.enable}}">
-        </EventListener>
-
-        <EventListener id="system_api_authorization_management_listener" type="org.wso2.carbon.identity.application.mgt.listener.AbstractApplicationMgtListener"
-                       name="org.wso2.carbon.identity.application.mgt.listener.AuthorizedAPIManagementListener"
-                       orderId="{{event.default_listener.system_api_authorization_management_listener.priority}}"
-                       enable="{{event.default_listener.system_api_authorization_management_listener.enable}}">
         </EventListener>
 
         <!-- Custom Event Listeners -->
@@ -2322,7 +2337,7 @@
         <Resource context="(.*)/lsp/(.*)" secured="true" http-method="all"/>
         <Resource context="(.*)" secured="false" http-method="OPTIONS"/>
         <Resource context="/" secured="false" http-method="GET"/>
-        <Resource context="(.*)/api/identity/user/v1.0/validate-code(.*)" secured="true" http-method="all">
+        <Resource context="(.*)/api/identity/user/v1.0/validate-code(.*)" secured="true" http-method="POST">
             <Permissions>/permission/admin/manage/identity/identitymgt</Permissions>
             <Scopes>internal_identity_mgt_view</Scopes>
             <Scopes>internal_identity_mgt_update</Scopes>
@@ -2343,11 +2358,11 @@
         <Resource context="(.*)/api/identity/user/v1.0/me(.*)" secured="true" http-method="POST"/>
         <Resource context="(.*)/api/identity/user/v1.0/lite(.*)" secured="true" http-method="POST"/>
         <Resource context="(.*)/api/identity/user/v1.0/me(.*)" secured="true" http-method="GET"/>
-        <Resource context="(.*)/api/identity/user/v1.0/pi-info" secured="true" http-method="all">
+        <Resource context="(.*)/api/identity/user/v1.0/pi-info" secured="true" http-method="GET">
              <Permissions>/permission/admin/manage/identity/usermgt/view</Permissions>
             <Scopes>internal_user_mgt_view</Scopes>
         </Resource>
-        <Resource context="(.*)/api/identity/user/v1.0/pi-info/(.*)" secured="true" http-method="all">
+        <Resource context="(.*)/api/identity/user/v1.0/pi-info/(.*)" secured="true" http-method="GET">
             <Permissions>/permission/admin/manage/identity/usermgt/view</Permissions>
             <Scopes>internal_user_mgt_view</Scopes>
         </Resource>
@@ -2406,40 +2421,6 @@
         <Resource context="(.*)/api/server/v1/notification-senders/(.*)" secured="true" http-method="DELETE">
             <Permissions>/permission/admin/manage/identity/configmgt/delete</Permissions>
             <Scopes>internal_config_mgt_delete</Scopes>
-        </Resource>
-
-        <Resource context="(.*)/api/server/v1/secret-type/(.*)" secured="true" http-method="POST">
-            <Permissions>/permission/admin/manage/identity/secretmgt/add</Permissions>
-            <Scopes>internal_secret_mgt_add</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/secret-type/(.*)" secured="true" http-method="PUT">
-            <Permissions>/permission/admin/manage/identity/secretmgt/update</Permissions>
-            <Scopes>internal_secret_mgt_update</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/secret-type/(.*)" secured="true" http-method="GET">
-            <Permissions>/permission/admin/manage/identity/secretmgt/view</Permissions>
-            <Scopes>internal_secret_mgt_view</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/secret-type/(.*)" secured="true" http-method="DELETE">
-            <Permissions>/permission/admin/manage/identity/secretmgt/delete</Permissions>
-            <Scopes>internal_secret_mgt_delete</Scopes>
-        </Resource>
-
-        <Resource context="(.*)/api/server/v1/secrets/(.*)" secured="true" http-method="POST">
-            <Permissions>/permission/admin/manage/identity/secretmgt/add</Permissions>
-            <Scopes>internal_secret_mgt_add</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/secrets/(.*)" secured="true" http-method="PUT">
-            <Permissions>/permission/admin/manage/identity/secretmgt/update</Permissions>
-            <Scopes>internal_secret_mgt_update</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/secrets/(.*)" secured="true" http-method="GET">
-            <Permissions>/permission/admin/manage/identity/secretmgt/view</Permissions>
-            <Scopes>internal_secret_mgt_view</Scopes>
-        </Resource>
-        <Resource context="(.*)/api/server/v1/secrets/(.*)" secured="true" http-method="DELETE">
-            <Permissions>/permission/admin/manage/identity/secretmgt/delete</Permissions>
-            <Scopes>internal_secret_mgt_delete</Scopes>
         </Resource>
 
         <Resource context="(.*)/api/server/v1/branding-preference(.*)" secured="false" http-method="GET"/>
@@ -2511,7 +2492,14 @@
             <Scopes>internal_consent_mgt_delete</Scopes>
         </Resource>
 
-        <Resource context="(.*)/api/identity/recovery/(.*)" secured="true" http-method="all">
+        <Resource context="(.*)/api/identity/recovery/(.*)" secured="true" http-method="GET">
+            <Permissions>/permission/admin/manage/identity/identitymgt</Permissions>
+            <Scopes>internal_identity_mgt_view</Scopes>
+            <Scopes>internal_identity_mgt_update</Scopes>
+            <Scopes>internal_identity_mgt_create</Scopes>
+            <Scopes>internal_identity_mgt_delete</Scopes>
+        </Resource>
+        <Resource context="(.*)/api/identity/recovery/(.*)" secured="true" http-method="POST">
             <Permissions>/permission/admin/manage/identity/identitymgt</Permissions>
             <Scopes>internal_identity_mgt_view</Scopes>
             <Scopes>internal_identity_mgt_update</Scopes>
@@ -2520,19 +2508,19 @@
         </Resource>
         <Resource context="(.*)/.well-known/openid-configuration(.*)" secured="false" http-method="all"/>
         <Resource context="/.well-known/webfinger(.*)" secured="false" http-method="all"/>
-        <Resource context="(.*)/api/identity/oauth2/dcr/v1.1/register(.*)" secured="true" http-method="POST">
+        <Resource context="(.*)/api/identity/oauth2/dcr/(.*)" secured="true" http-method="POST">
             <Permissions>/permission/admin/manage/identity/applicationmgt/create</Permissions>
             <Scopes>internal_application_mgt_create</Scopes>
         </Resource>
-        <Resource context="(.*)/api/identity/oauth2/dcr/v1.1/register(.*)" secured="true" http-method="DELETE">
+        <Resource context="(.*)/api/identity/oauth2/dcr/(.*)" secured="true" http-method="DELETE">
             <Permissions>/permission/admin/manage/identity/applicationmgt/delete</Permissions>
             <Scopes>internal_application_mgt_delete</Scopes>
         </Resource>
-        <Resource context="(.*)/api/identity/oauth2/dcr/v1.1/register(.*)" secured="true" http-method="PUT">
+        <Resource context="(.*)/api/identity/oauth2/dcr/(.*)" secured="true" http-method="PUT">
             <Permissions>/permission/admin/manage/identity/applicationmgt/update</Permissions>
             <Scopes>internal_application_mgt_update</Scopes>
         </Resource>
-        <Resource context="(.*)/api/identity/oauth2/dcr/v1.1/register(.*)" secured="true" http-method="GET">
+        <Resource context="(.*)/api/identity/oauth2/dcr/(.*)" secured="true" http-method="GET">
             <Permissions>/permission/admin/manage/identity/applicationmgt/view</Permissions>
             <Scopes>internal_application_mgt_view</Scopes>
         </Resource>
@@ -2715,13 +2703,6 @@
             <Scopes>internal_user_mgt_list</Scopes>
             <Scopes>internal_user_mgt_delete</Scopes>
         </Resource>
-        <Resource context="(.*)/api/identity/oauth2/dcr/(.*)" secured="true" http-method="all">
-            <Permissions>/permission/admin/manage/identity/applicationmgt</Permissions>
-            <Scopes>internal_application_mgt_create</Scopes>
-            <Scopes>internal_application_mgt_update</Scopes>
-            <Scopes>internal_application_mgt_view</Scopes>
-            <Scopes>internal_application_mgt_delete</Scopes>
-        </Resource>
 
         <Resource context="(.*)/api/identity/auth/v1.1/data(.*)" secured="true" http-method="all"/>
         <Resource context="(.*)/api/identity/auth/v1.1/context(.*)" secured="true" http-method="all"/>
@@ -2791,8 +2772,7 @@
             <Permissions>none</Permissions>
             <Scopes>internal_login</Scopes>
         </Resource>
-        <Resource context="(.*)/api/users/v1/me/challenge-answers(.*)" secured="true" http-method="GET, PUT,
-        POST, DELETE">
+        <Resource context="(.*)/api/users/v1/me/challenge-answers(.*)" secured="true" http-method="GET, PUT, POST, DELETE">
             <Permissions>none</Permissions>
             <Scopes>internal_login</Scopes>
         </Resource>
@@ -3083,7 +3063,7 @@
             <Permissions>/permission/admin/manage/identity/cors/origins/view</Permissions>
             <Scopes>internal_cors_origins_view</Scopes>
         </Resource>
-        <Resource context="(.*)/api/server/v1/cors/origins/(.*)/apps" secured="true" http-method="GET">
+        <Resource context="(.*)/api/server/v1/cors/origins/(.*)" secured="true" http-method="GET">
             <Permissions>/permission/admin/manage/identity/cors/origins/view</Permissions>
             <Scopes>internal_cors_origins_view</Scopes>
         </Resource>
@@ -3295,18 +3275,21 @@
         <Resource context="/duoauthenticationendpoint(.*)" secured="false" http-method="all"/>
         <Resource context="(.*)/fileupload/service(.*)" secured="true" http-method="all">
             <Permissions>/permission/admin/manage/identity/applicationmgt/create</Permissions>
+            <Scopes>internal_application_mgt_create</Scopes>
         </Resource>
         <Resource context="(.*)/fileupload/entitlement-policy(.*)" secured="true" http-method="all">
             <Permissions>/permission/admin/manage/identity/entitlement/pap/policy/create</Permissions>
+            <Scope>internal_manage_pap</Scope>
         </Resource>
         <Resource context="(.*)/fileupload/resource(.*)" secured="true" http-method="all">
             <Permissions>/permission/admin/manage</Permissions>
+            <Scopes>internal_registry_resource_upload</Scopes>
         </Resource>
         <Resource context="(.*)/api/idle-account-identification/v1/inactive-users(.*)" secured="true" http-method="GET">
             <Permissions>/permission/admin/manage/identity/usermgt/list</Permissions>
             <Scopes>internal_user_mgt_list</Scopes>
         </Resource>
-        <Resource context="(.*)/api/server/v1/expired-password-identification/password-expired-users(.*)" secured="true" http-method="GET">
+        <Resource context="(.*)/api/server/v1/password-expired-users(.*)" secured="true" http-method="GET">
             <Permissions>/permission/admin/manage/identity/usermgt/list</Permissions>
             <Scopes>internal_user_mgt_list</Scopes>
         </Resource>
@@ -3319,13 +3302,8 @@
         <Resource context="(.*)/registry/atom(.*)" secured="false" http-method="all"/>
         <Resource context="(.*)/tryit/JAXRSRequestXSSproxy_ajaxprocessor.jsp" secured="false" http-method="all"/>
         <Resource context="(.*)/admin/jsp/WSRequestXSSproxy_ajaxprocessor.jsp" secured="false" http-method="all"/>
-        <Resource context="(.*)/api/identity/config-mgt/v1.0/search(.*)" secured="true" http-method="GET"/>
         <Resource context="^(?!.*/t/).*/api/identity/config-mgt/v1.0/resource-type" secured="true" http-method="POST"/>
         <Resource context="^(?!.*/t/).*/api/identity/config-mgt/v1.0/resource-type" secured="true" http-method="PUT"/>
-        <Resource context="(.*)/api/identity/config-mgt/v1.0/resource-type/(.*)" secured="true" http-method="GET"/>
-        <Resource context="^(?!.*/t/).*/api/identity/config-mgt/v1.0/resource-type/(.*)" secured="true" http-method="DELETE"/>
-        <Resource context="(.*)/api/identity/config-mgt/v1.0/resource/(.*)" secured="true" http-method="POST"/>
-        <Resource context="(.*)/api/identity/config-mgt/v1.0/resource/(.*)" secured="true" http-method="PUT"/>
         <Resource context="(.*)/api/identity/config-mgt/v1.0/resource/(.*)/(.*)" secured="true" http-method="GET"/>
         <Resource context="(.*)/api/identity/config-mgt/v1.0/resource/(.*)/(.*)" secured="true" http-method="DELETE"/>
         <Resource context="(.*)/api/identity/config-mgt/v1.0/resource/(.*)/(.*)" secured="true" http-method="POST"/>
@@ -3363,6 +3341,11 @@
     Would not affect associations done through provisioning
     -->
     <EnableFederatedUserAssociation>{{user.association.enable_for_federated_users}}</EnableFederatedUserAssociation>
+
+    <!--
+    This property restricts unnecessary user local search during federated authentication flow
+    -->
+    <SkipLocalUserSearchForAuthenticationFlowHandlers>{{authentication.skip_local_user_search_for_authentication_flow_handlers}}</SkipLocalUserSearchForAuthenticationFlowHandlers>
 
     <TenantContext>
         <TenantQualifiedUrls>
@@ -3488,6 +3471,7 @@
             </HTTPProxy>
             <!-- Configuration for allowing users to get Previous KID value generated using SHA-1 algo from the JWKS endpoint -->
             <AddPreviousVersionKID>{{oauth.jwks_endpoint.add_previous_version_kid}}</AddPreviousVersionKID>
+            <IsThumbprintHexifyRequired>{{oauth.jwks_endpoint.is_thumbprint_hexify_required}}</IsThumbprintHexifyRequired>
         </JWKSEndpoint>
     </JWTValidatorConfigs>
 
@@ -3593,6 +3577,14 @@
     {% if federated.idp.group_claim_value_attribute_separator is defined %}
     <!--This is the separator that use to separate multiple groups in the group claim value coming from IDP side-->
     <FederatedIDPGroupClaimValueAttributeSeparator>{{federated.idp.group_claim_value_attribute_separator}}</FederatedIDPGroupClaimValueAttributeSeparator>
+    {% endif %}
+
+    {% if federated.idp.use_idp_role_claim_as_idp_group_claim is defined %}
+    <!--
+    This allows to use idp role claim uri as the idp group claim uri. This is only recommended to handle the migration
+    from idp role to local role mapping implementation to idp group to local role assignment implementation.
+    -->
+    <UseIDPRoleClaimAsIDPGroupClaim>{{federated.idp.use_idp_role_claim_as_idp_group_claim}}</UseIDPRoleClaimAsIDPGroupClaim>
     {% endif %}
 
      {% if system_applications.fidp_role_based_authz_enabled_apps is defined %}
@@ -3939,5 +3931,26 @@
         </Username>
     </InputValidation>
     {% endif %}
+
+    <!-- Console Application configurations -->
+    <Console>
+        <CallbackURL>{{console.callback_url}}</CallbackURL>
+        <AccessURL>{{console.access_url}}</AccessURL>
+    </Console>
+
+    <!-- MyAccount Application configurations -->
+    <MyAccount>
+        <CallbackURL>{{myaccount.callback_url}}</CallbackURL>
+        <AccessURL>{{myaccount.access_url}}</AccessURL>
+    </MyAccount>
+
+    <!-- Configuration settings for the API responses. -->
+    <APIResponse>
+        <!-- When set to true, this enables sending a specific authentication failure message in the API response
+         when an account is locked. -->
+        <SetAccountLockAuthFailureReason>{{api_response.set_account_lock_auth_failure_reason}}</SetAccountLockAuthFailureReason>
+    </APIResponse>
+
+    <SuperTenantAliasInPublicUrl>{{super_tenant.alias_in_public_url}}</SuperTenantAliasInPublicUrl>
 
 </Server>

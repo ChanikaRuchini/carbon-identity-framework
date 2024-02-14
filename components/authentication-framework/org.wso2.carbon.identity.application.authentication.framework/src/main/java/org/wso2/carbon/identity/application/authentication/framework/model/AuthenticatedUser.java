@@ -22,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.DuplicatedAuthUserException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.UserIdNotFoundException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.UserSessionException;
@@ -164,7 +165,8 @@ public class AuthenticatedUser extends User {
             authenticatedUser.setUserName(MultitenantUtils.getTenantAwareUsername(authenticatedSubjectIdentifier));
         }
 
-        authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(authenticatedSubjectIdentifier));
+        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        authenticatedUser.setTenantDomain(tenantDomain);
         authenticatedUser.setAuthenticatedSubjectIdentifier(authenticatedSubjectIdentifier);
         authenticatedUser.setUserId(authenticatedUser.getLocalUserIdInternal());
 
@@ -330,6 +332,11 @@ public class AuthenticatedUser extends User {
             throw new UserIdNotFoundException("User id is not available for user.");
         }
         return this.userId;
+    }
+
+    public boolean isUserIdExists() {
+
+        return this.userId != null;
     }
 
     public void setUserId(String userId) {
@@ -503,6 +510,17 @@ public class AuthenticatedUser extends User {
     public void setUserResidentOrganization(String userResidentOrganization) {
 
         this.userResidentOrganization = userResidentOrganization;
+    }
+
+    /**
+     * Returns whether this user's identity is managed by an organization or not. A user who has been federated login
+     * from an internal organization is considered as an organization user.
+     *
+     * @return isOrganizationUser
+     */
+    public boolean isOrganizationUser() {
+
+        return this.isFederatedUser && StringUtils.isNotBlank(this.getUserResidentOrganization());
     }
 
     @Override
